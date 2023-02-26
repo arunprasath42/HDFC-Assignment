@@ -31,18 +31,9 @@ type Quantity struct {
 	Quantity int `json:"quantity" binding:"required,min=1,max=10"`
 }
 
-// type OrderRequest struct {
-// 	ProductID    int    `json:"id" binding:"required"`
-// 	Quantity     int    `json:"quantity" binding:"required,min=1,max=10"`
-// 	Category     string `json:"category" binding:"required,oneof=Premium Regular Budget"`
-// 	PremiumCount int    `json:"premiumCount"`
-// }
-
-// OrderRequest is used to define the request body for placing an order for a product where array of products can be ordered
 type OrderRequest struct {
 	ProductID    []int    `json:"id" binding:"required"`
 	Quantity     []int    `json:"quantity" binding:"required,min=1,max=10"`
-	Category     []string `json:"category" binding:"required"`
 	PremiumCount int      `json:"premiumCount"`
 }
 

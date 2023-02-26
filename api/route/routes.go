@@ -10,7 +10,7 @@ import (
 
 func SetupRoutes(router *gin.Engine) {
 
-	//endpoint for productGroup
+	//endpoint for productService
 	productGroup := router.Group("/products")
 	{
 		productGroup.GET("", controllers.GetAllProducts)
@@ -18,7 +18,7 @@ func SetupRoutes(router *gin.Engine) {
 		productGroup.POST("/placeorder", controllers.PlaceOrder)
 	}
 
-	// endpoints for the Order service.
+	// endpoints for the Orderservice.
 	orderGroup := router.Group("/orders")
 	{
 		orderGroup.GET("", controllers.GetAllOrders)
