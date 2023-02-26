@@ -1,0 +1,11 @@
+#API configurations
+application:
+  name: HDFC Bank API Server
+  doc: http://localhost:8080
+
+# Server configurations
+server:
+  port: :8080
+
+logging:
+  level: DEBUG
