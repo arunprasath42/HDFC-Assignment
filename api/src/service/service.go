@@ -2,224 +2,142 @@
 package service
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"hdfc-assignment/src/models"
 	"hdfc-assignment/utils/constant"
-	"strconv"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// Handler - struct for qed request handler
+// Handler - struct for the service
 type Handler struct{}
 
-var (
-	productMap = make(map[int]string)
-	orderMap   = make(map[int]string)
-	mutex      = &sync.Mutex{}
-)
+var product []*models.Product
+var orders []*models.Order
 
-// Add 10 different products to the map.
 func init() {
-	productMap[1] = `{"id":1,"name":"Product 1","price":9.99,"availability":true,"category":"Premium","quantity":10}`
-	productMap[2] = `{"id":2,"name":"Product 2","price":19.99,"availability":false,"category":"Premium","quantity":10}`
-	productMap[3] = `{"id":3,"name":"Product 3","price":4.99,"availability":true,"category":"Budget","quantity":10}`
-	productMap[4] = `{"id":4,"name":"Product 4","price":29.99,"availability":true,"category":"Premium","quantity":10}`
-	productMap[5] = `{"id":5,"name":"Product 5","price":14.99,"availability":false,"category":"Regular","quantity":10}`
-	productMap[6] = `{"id":6,"name":"Product 6","price":7.99,"availability":true,"category":"Budget","quantity":10}`
-	productMap[7] = `{"id":7,"name":"Product 7","price":39.99,"availability":true,"category":"Premium","quantity":10}`
-	productMap[8] = `{"id":8,"name":"Product 8","price":24.99,"availability":true,"category":"Regular","quantity":10}`
-	productMap[9] = `{"id":9,"name":"Product 9","price":8.99,"availability":true,"category":"Budget","quantity":10}`
-	productMap[10] = `{"id":10,"name":"Product 10","price":49.99,"availability":false,"category":"Premium","quantity":10}`
-
-	var productSyncMap sync.Map
-
-	for key, value := range productMap {
-		productSyncMap.Store(key, value)
-	}
-
-	productSyncMap.Range(func(key, value interface{}) bool {
-		log.Println("Key:", key, "Value:", value)
-		return true
-	})
+	product = append(product, &models.Product{ID: 1, Name: "Product 1", Price: 100, Availability: true, Category: "Premium", Quantity: 12})
+	product = append(product, &models.Product{ID: 2, Name: "Product 2", Price: 200, Availability: true, Category: "Regular", Quantity: 20})
+	product = append(product, &models.Product{ID: 3, Name: "Product 3", Price: 300, Availability: true, Category: "Budget", Quantity: 15})
+	product = append(product, &models.Product{ID: 4, Name: "Product 4", Price: 400, Availability: true, Category: "Premium", Quantity: 10})
+	product = append(product, &models.Product{ID: 5, Name: "Product 5", Price: 500, Availability: true, Category: "Regular", Quantity: 10})
+	product = append(product, &models.Product{ID: 6, Name: "Product 6", Price: 600, Availability: true, Category: "Budget", Quantity: 15})
+	product = append(product, &models.Product{ID: 7, Name: "Product 7", Price: 700, Availability: true, Category: "Premium", Quantity: 18})
+	product = append(product, &models.Product{ID: 8, Name: "Product 8", Price: 800, Availability: true, Category: "Regular", Quantity: 20})
+	product = append(product, &models.Product{ID: 9, Name: "Product 9", Price: 900, Availability: true, Category: "Budget", Quantity: 10})
+	product = append(product, &models.Product{ID: 10, Name: "Product 10", Price: 1000, Availability: true, Category: "Premium", Quantity: 13})
 }
 
 // GetAllProducts - returns all the products in the catalogue
-func (h *Handler) GetAllProducts() []models.Product {
-
-	var productSyncMap sync.Map
-	productSyncMap.Range(func(key, value interface{}) bool {
-		log.Println("Key:", key, "Value:", value)
-		return true
-	})
-
-	var products []models.Product
-
-	for _, value := range productMap {
-		var product models.Product
-		json.Unmarshal([]byte(value), &product)
-		products = append(products, product)
-	}
-
-	var sortedProducts []models.Product
-	for i := 1; i <= len(products); i++ {
-		for _, product := range products {
-			if product.ID == i {
-				sortedProducts = append(sortedProducts, product)
-			}
-		}
-	}
-
-	return sortedProducts
+func (h *Handler) GetAllProducts() []*models.Product {
+	return product
 }
 
 // GetProductDetails - returns the details of a specific product
 func (h *Handler) GetProductDetails(id int) (*models.Product, error) {
-
-	p, ok := productMap[id]
-	log.Println("p: ", p)
-	if !ok {
-		return nil, fmt.Errorf("product not found")
+	var prod *models.Product
+	for _, val := range product {
+		if val.ID == id {
+			prod = val
+		}
 	}
-
-	var product models.Product
-	err := json.Unmarshal([]byte(p), &product)
-	if err != nil {
-		log.Println("Error unmarshalling product data: ", err)
-		return nil, err
+	if prod == nil {
+		return nil, constant.ErrProductNotFound
 	}
-
-	return &product, nil
+	return prod, nil
 }
 
-// PlaceOrder - places an order for a product and returns the order details
-func (h *Handler) PlaceOrder(req models.OrderRequest) (*models.Order, error) {
+func (h *Handler) PlaceOrder(request []*models.OrderReq) (string, error) {
 	var orderValue float64
-	var premiumCount int
+	var premium int
+	for _, req := range request {
+		var found bool
+		for _, prod := range product {
+			if req.ProductId == prod.ID {
+				found = true
+				// Add additional validation to ensure quantity is valid
+				if req.Quantity <= 0 {
+					log.Printf("Invalid quantity: %d", req.Quantity)
+					return "", errors.New("requested quantity should be greater than 0")
+				}
 
-	for i, id := range req.ProductID {
-		p, ok := productMap[id]
-		log.Println("p: ", p)
-		if !ok {
-			return nil, fmt.Errorf("product not found")
+				// Check if requested quantity is available
+				if req.Quantity > prod.Quantity {
+					log.Printf("Requested quantity exceeds available quantity: %d > %d", req.Quantity, prod.Quantity)
+					return "", fmt.Errorf(constant.QUANTITYEXCEEDS, req.Quantity, prod.Quantity)
+				}
+
+				// Updating product quantity by decrementing the requested quantity
+				prod.Quantity = prod.Quantity - req.Quantity
+
+				// If product quantity is 0, then availability is set to false
+				if prod.Quantity == 0 {
+					prod.Availability = false
+				}
+
+				// If product is premium, incrementing the premium count
+				if prod.Category == constant.PREMIUM {
+					premium = premium + 1
+				}
+				orderValue = orderValue + (float64(req.Quantity) * prod.Price)
+			}
+
+		}
+		if !found {
+			return "", constant.ErrProductNotFound
 		}
 
-		var product models.Product
-		err := json.Unmarshal([]byte(p), &product)
-		if err != nil {
-			log.Println("Error unmarshalling product data: ", err)
-			return nil, err
-		}
-
-		if product.Quantity < req.Quantity[i] {
-			return nil, fmt.Errorf("product quantity not available")
-		}
-
-		if req.Category[i] == constant.PREMIUM {
-			premiumCount++
-		}
-
-		orderValue += product.Price * float64(req.Quantity[i])
 	}
-
-	log.Println("orderValue before discount: ", orderValue)
-
-	if premiumCount >= 3 {
-		log.Println("Order is eligible for a discount" + strconv.Itoa(premiumCount))
+	if premium >= 3 {
+		log.Printf("Order is eligible for 10%% discount and the order value is: %f and the discount is: %f", orderValue*0.9, orderValue*0.1)
 		orderValue *= 0.9 // apply 10% discount
 	}
 
-	order := models.Order{
-		ID:            len(orderMap) + 1,
-		ProductID:     req.ProductID,
-		Quantity:      req.Quantity,
-		OrderValue:    orderValue,
-		OrderStatus:   "Placed",
-		OrderDateTime: time.Now(),
-	}
+	// Placing the order and adding it to the orders slice
+	var order models.Order
+	order.ID = 1
+	order.ProductDetails = request
+	order.OrderStatus = constant.PLACED
+	order.OrderDateTime = time.Now()
+	order.OrderValue = orderValue
+	order.PremiumCount = premium
+	orders = append(orders, &order)
 
-	orderJSON, err := json.Marshal(order)
-	if err != nil {
-		log.Println("Error marshalling order data: ", err)
-		return nil, err
-	}
-
-	orderMap[order.ID] = string(orderJSON)
-
-	return &order, nil
+	return constant.ORDERPLACED, nil
 }
 
-// GetAllOrders - returns all orders
-func (h *Handler) GetAllOrders() ([]models.Order, error) {
-
-	var orders []models.Order
-
-	for _, o := range orderMap {
-		var order models.Order
-		err := json.Unmarshal([]byte(o), &order)
-		if err != nil {
-			log.Println("Error unmarshalling order data: ", err)
-			return nil, err
-		}
-
-		orders = append(orders, order)
-	}
-
-	log.Println("orders: ", orders)
+// GetAllOrders - returns all the orders placed
+func (h *Handler) GetAllOrders() ([]*models.Order, error) {
 	return orders, nil
 }
 
-// GetOrderDetails - returns the details of an specific order
-func (h *Handler) GetOrderDetails(id int) (*models.Order, error) {
-
-	o, ok := orderMap[id]
-	if !ok {
-		return nil, fmt.Errorf("order not found")
+// GetOrderDetailsByID - returns the details of a specific order
+func (h *Handler) GetOrderDetailsByID(id int) (*models.Order, error) {
+	var ord *models.Order
+	for _, val := range orders {
+		if val.ID == id {
+			ord = val
+		}
 	}
-
-	var order models.Order
-	err := json.Unmarshal([]byte(o), &order)
-	if err != nil {
-		log.Println("Error unmarshalling order data: ", err)
-		return nil, err
+	if ord == nil {
+		return nil, constant.ErrOrderNotFound
 	}
-	return &order, nil
+	return ord, nil
 }
 
-// UpdateOrderStatus - updates the order status
-func (h *Handler) UpdateOrderStatus(req models.OrderUpdateRequest) (*models.Order, error) {
-
-	o, ok := orderMap[req.OrderID]
-	if !ok {
-		return nil, fmt.Errorf("order not found")
+// UpdateOrderStatus - updates the status of a specific order
+func (h *Handler) UpdateOrderStatus(req models.OrderUpdateRequest) (string, error) {
+	var ord *models.Order
+	for _, val := range orders {
+		if val.ID == req.OrderID {
+			ord = val
+		}
 	}
-
-	var order models.Order
-	err := json.Unmarshal([]byte(o), &order)
-	if err != nil {
-		log.Println("Error unmarshalling order data: ", err)
-		return nil, err
+	if ord == nil {
+		return "", constant.ErrOrderNotFound
 	}
-
-	order.OrderStatus = req.OrderStatus
-
-	if req.OrderStatus == constant.DISPATCHED {
-		tym := time.Now()
-		order.DispatchDate = &tym
-	}
-
-	b, err := json.Marshal(order)
-	if err != nil {
-		log.Println("Error marshalling order data: ", err)
-		return nil, err
-	}
-
-	mutex.Lock()
-	orderMap[order.ID] = string(b)
-	mutex.Unlock()
-
-	return &order, nil
+	ord.OrderStatus = req.OrderStatus
+	return constant.ORDERUPDATED, nil
 }

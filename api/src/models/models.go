@@ -17,14 +17,13 @@ type Product struct {
 
 // Order represents an order for a product.
 type Order struct {
-	ID            int        `json:"id"`
-	ProductID     []int      `json:"productId"`
-	Quantity      []int      `json:"quantity"`
-	OrderValue    float64    `json:"orderValue"`
-	OrderStatus   string     `json:"orderStatus" binding:"required,oneof=Placed Dispatched Completed Cancelled"`
-	DispatchDate  *time.Time `json:"dispatchDate,omitempty"`
-	PremiumCount  int        `json:"premiumCount,omitempty"`
-	OrderDateTime time.Time  `json:"orderDateTime,omitempty"`
+	ID             int         `json:"id"`
+	ProductDetails []*OrderReq `json:"productDetails"`
+	OrderValue     float64     `json:"orderValue"`
+	OrderStatus    string      `json:"orderStatus" binding:"required,oneof=Placed Dispatched Completed Cancelled"`
+	DispatchDate   *time.Time  `json:"dispatchDate,omitempty"`
+	PremiumCount   int         `json:"premiumCount,omitempty"`
+	OrderDateTime  time.Time   `json:"orderDateTime,omitempty"`
 }
 
 type Quantity struct {
@@ -32,9 +31,14 @@ type Quantity struct {
 }
 
 type OrderRequest struct {
-	ProductID    []int    `json:"id" binding:"required"`
-	Quantity     []int    `json:"quantity" binding:"required,min=1,max=10"`
-	PremiumCount int      `json:"premiumCount"`
+	ProductID    []int `json:"id" binding:"required"`
+	Quantity     []int `json:"quantity" binding:"required,min=1,max=10"`
+	PremiumCount int   `json:"premiumCount"`
+}
+
+type OrderReq struct {
+	ProductId int `json:"productid" binding:"required"`
+	Quantity  int `json:"quantity" binding:"required"`
 }
 
 type OrderUpdateRequest struct {

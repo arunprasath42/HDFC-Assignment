@@ -21,7 +21,6 @@ func SetupRoutes(router *gin.Engine) {
 	// endpoints for the Orderservice.
 	orderGroup := router.Group("/orders")
 	{
-		orderGroup.GET("", controllers.GetAllOrders)
 		orderGroup.GET("/orderDetails", controllers.GetOrderDetails)
 		orderGroup.POST("/updateOrderStatus", controllers.UpdateOrderStatus)
 	}

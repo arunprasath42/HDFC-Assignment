@@ -2,14 +2,12 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"hdfc-assignment/src/models"
 	"hdfc-assignment/src/service"
-
-	"hdfc-assignment/utils/validator"
+	"hdfc-assignment/utils/constant"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,7 +28,6 @@ func GetProductDetails(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
-
 	product, err := service.GetProductDetails(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
@@ -42,30 +39,22 @@ func GetProductDetails(c *gin.Context) {
 // PlaceOrder - places an order for a product
 func PlaceOrder(c *gin.Context) {
 
-	req := models.OrderRequest{}
+	req := []*models.OrderReq{}
+	res := make(map[string]interface{})
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	if len(req.ProductID) == 0 || len(req.Quantity) <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	if err := validator.Validate(req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
 	var service = service.Handler{}
 	product, err := service.PlaceOrder(req)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "****Product not found****"})
+		res["error"] = err.Error()
+		c.JSON(http.StatusBadRequest, res)
 		return
 	}
-	c.JSON(http.StatusOK, product)
+	res["data"] = product
+	c.JSON(http.StatusOK, res)
 }
 
 // GetAllOrders - returns all the orders placed
@@ -73,7 +62,7 @@ func GetAllOrders(c *gin.Context) {
 	var service = service.Handler{}
 	orders, err := service.GetAllOrders()
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "****No orders found****"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": constant.ORDERNOTFOUND})
 		return
 	}
 	c.JSON(http.StatusOK, orders)
@@ -85,12 +74,12 @@ func GetOrderDetails(c *gin.Context) {
 	var service = service.Handler{}
 	id, err := strconv.Atoi(c.Query("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": constant.INVALIDREQUEST})
 		return
 	}
-	details, err := service.GetOrderDetails(id)
+	details, err := service.GetOrderDetailsByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "****Order not found****"})
+		c.JSON(http.StatusNotFound, gin.H{"error": constant.ORDERNOTFOUND})
 		return
 	}
 	c.JSON(http.StatusOK, details)
@@ -98,22 +87,17 @@ func GetOrderDetails(c *gin.Context) {
 
 // UpdateOrderStatus - updates the order status
 func UpdateOrderStatus(c *gin.Context) {
+
 	req := models.OrderUpdateRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	if err := validator.Validate(req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
 	var service = service.Handler{}
 	updateOrder, err := service.UpdateOrderStatus(req)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Unable to update the order status"})
+		c.JSON(http.StatusNotFound, gin.H{"error": constant.ORDERNOTUPDATED})
 		return
 	}
-	c.JSON(http.StatusOK, updateOrder)
+	c.JSON(http.StatusOK, gin.H{"data": updateOrder})
 }
